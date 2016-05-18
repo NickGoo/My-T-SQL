@@ -1,0 +1,166 @@
+alter trigger TR_Test on [Orders]
+for insert 
+as 
+
+declare @cfg nvarchar(100)
+declare @date datetime
+declare @TotalID varchar(50)
+declare @DetailID varchar(50)
+declare @TotalCount int
+
+--初始化详情表
+if object_id(N'StatDetailEmployees',N'U') is null
+		begin
+		--复制表结构及数据
+		select * into StatDetailEmployees from inserted
+		end
+		else 
+		begin
+		insert StatDetailEmployees select * from inserted	
+		end
+--初始化详情表
+
+--初始化配置条件
+--年
+set @date = (select OrderDate from inserted)
+set @cfg = '{"Employees":{"OrderDate":{"Y":"'+ convert(nvarchar,datepart(yyyy,@date)) +'"}}}'
+if (select count(ConfigID) from StatConfig where ConfigItem = @cfg) <= 0
+	begin
+	
+	insert StatConfig(
+	ConfigID,
+	ConfigItem,
+	FieldSum,
+	FieldCount,
+	ExtendField1,
+	ExtendField2,
+	ExtendField3)
+	values(
+	newid(),
+	@cfg,
+	'',
+	'OrderID',
+	N'',
+	N'',
+	N'')
+	
+	insert StatTotal(
+	TotalID,
+	TotalSum,
+	TotalCount,
+	ConfigItem,
+	ExtendField1,
+	ExtendField2,
+	ExtendField3)
+	values(
+	newid(),
+	null,
+	1,
+	@cfg,
+	N'',
+	N'',
+	N'')
+	
+	end
+	else 
+	begin
+		set @TotalCount =((select TotalCount from StatTotal where ConfigItem = @cfg) + 1)
+		update [StatTotal] set
+		[TotalCount] = @TotalCount
+		where ConfigItem = @cfg
+	end
+--年
+
+--初始化详情表绑定
+	if(object_id(N'TotalBindDetail',N'U') is not null)
+		begin 
+		set @TotalID = (select TotalID from StatTotal where ConfigItem = @cfg)	
+		set @DetailID = (select OrderID from inserted)
+		insert TotalBindDetail(
+			BindID,
+			TotalID,
+			DetailID,
+			ConfigItem
+		)
+		values(
+			newid(),
+			@TotalID,
+			@DetailID,
+			@cfg
+		)
+		end
+--初始化详情表绑定
+	
+--月	
+set @cfg = '{"Employees":{"OrderDate":{"Y":"'+  convert(nvarchar,datepart(yyyy,@date)) +'","M":"'+ convert(nvarchar,datepart(yyyy,@date)) +'"}}}'
+if (select count(ConfigID) from StatConfig where ConfigItem = @cfg) <= 0
+	begin
+	
+	insert StatConfig(
+	ConfigID,
+	ConfigItem,
+	FieldSum,
+	FieldCount,
+	ExtendField1,
+	ExtendField2,
+	ExtendField3)
+	values(
+	newid(),
+	@cfg,
+	'',
+	'OrderID',
+	N'',
+	N'',
+	N'')
+	
+	insert StatTotal(
+	TotalID,
+	TotalSum,
+	TotalCount,
+	ConfigItem,
+	ExtendField1,
+	ExtendField2,
+	ExtendField3)
+	values(
+	newid(),
+	null,
+	1,
+	@cfg,
+	N'',
+	N'',
+	N'')
+	
+	end
+	else 
+		begin
+		set @TotalCount =((select TotalCount from StatTotal where ConfigItem = @cfg) + 1)
+		update [StatTotal] set
+		[TotalCount] = @TotalCount
+		where ConfigItem = @cfg
+	end
+--月
+
+--初始化配置条件	
+
+		
+
+
+--初始化详情表绑定
+	if(object_id(N'TotalBindDetail',N'U') is not null)
+		begin 
+		set @TotalID = (select TotalID from StatTotal where ConfigItem = @cfg)	
+		set @DetailID = (select OrderID from inserted)
+		insert TotalBindDetail(
+			BindID,
+			TotalID,
+			DetailID,
+			ConfigItem
+		)
+		values(
+			newid(),
+			@TotalID,
+			@DetailID,
+			@cfg
+		)
+		end
+--初始化详情表绑定
